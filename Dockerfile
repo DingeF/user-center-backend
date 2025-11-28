@@ -1,10 +1,13 @@
-FROM openjdk:8-jdk-alpine
+# Dockerfile（后端）
+FROM maven:3.9-openjdk-8 AS build
+WORKDIR /src
+COPY pom.xml .
+COPY src ./src
+RUN mvn -DskipTests package
 
+FROM openjdk:8-jre-alpine
 WORKDIR /app
-
-COPY user-center-backend-0.0.1-SNAPSHOT.jar ./app/application.jar
-
+COPY --from=build /src/target/*.jar /app/app.jar
 EXPOSE 8080
-
-CMD ["java","-jar","/app/application.jar","--spring.profiles.active=prod"]
+ENTRYPOINT ["java","-jar","/app/app.jar","--spring.profiles.active=prod"]
 
