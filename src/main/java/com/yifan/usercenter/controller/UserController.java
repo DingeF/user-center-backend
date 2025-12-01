@@ -9,6 +9,7 @@ import com.yifan.usercenter.constant.UserConstant;
 import com.yifan.usercenter.mapper.UserMapper;
 import com.yifan.usercenter.model.domain.User;
 import com.yifan.usercenter.model.domain.request.UserLogInRequest;
+import com.yifan.usercenter.model.domain.request.UserQueryRequest;
 import com.yifan.usercenter.model.domain.request.UserRegisterRequest;
 import com.yifan.usercenter.service.UserService;
 
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.yifan.usercenter.constant.UserConstant.ALLOWED_SORT_FIELDS;
 
 
 /**
@@ -99,24 +102,40 @@ public class UserController {
      * 根据用户名查询用户列表
      * 允许用户名为空
      *
-     * @param username 用户名
+     * @param queryRequest 查询请求对象
      * @return 用户列表
      */
-    @GetMapping("/query")
-    public BaseResponse<List<User>> queryUserList(String username, HttpServletRequest request) {
+    @PostMapping("/query")
+    public BaseResponse<List<User>> queryUserList(@RequestBody UserQueryRequest queryRequest, HttpServletRequest request) {
         // 仅管理员可查询
         if (!isAdmin(request)) {
            throw new BusinessException(ErrorCode.NO_AUTH, "用户查询权限不足");
         }
+        QueryWrapper<User> qw = new QueryWrapper<>();
+        if (StringUtils.isNotBlank(queryRequest.getUserAccount())) { qw.like("userAccount", queryRequest.getUserAccount()); }
+        if (StringUtils.isNotBlank(queryRequest.getUsername())) { qw.like("username", queryRequest.getUsername()); }
+        if (StringUtils.isNotBlank(queryRequest.getPlantCode())) { qw.like("plantCode", queryRequest.getPlantCode()); }
+        if (queryRequest.getGender() != null) { qw.eq("gender", queryRequest.getGender()); }
+        if (StringUtils.isNotBlank(queryRequest.getPhone())) { qw.like("phone", queryRequest.getPhone()); }
+        if (StringUtils.isNotBlank(queryRequest.getEmail())) { qw.like("email", queryRequest.getEmail()); }
+        if (queryRequest.getUserStatus() != null) { qw.eq("userStatus", queryRequest.getUserStatus()); }
+        if (queryRequest.getUserRole() != null) { qw.eq("userRole", queryRequest.getUserRole()); }
+        if (queryRequest.getDateTime() != null) {    qw.ge("createTime", queryRequest.getDateTime())
+                                                        .lt("createTime", queryRequest.getDateTime().plusDays(1)); }
 
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        if (StringUtils.isNotBlank(username)) {
-            queryWrapper.like("username", username);  // 不用eq用like,模糊查询用户名
+       // 排序字段校验，指定字段进行排序
+        if (StringUtils.isNotBlank(queryRequest.getSortField()) && ALLOWED_SORT_FIELDS.contains(queryRequest.getSortField())) {
+            String field = queryRequest.getSortField();
+            String order = queryRequest.getSortOrder();
+            if ("asc".equalsIgnoreCase(order)) { qw.orderByAsc(field); }
+            else if ("desc".equalsIgnoreCase(order)) { qw.orderByDesc(field); }
         }
-        List<User> userList = userService.list(queryWrapper);
-        userList = userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
-        return ResultUtil.success(userList, "查询成功");
+        List<User> list = userService.list(qw);
+        List<User> safe = list.stream().map(userService::getSafetyUser).collect(Collectors.toList());
+        return ResultUtil.success(safe, "查询成功");
     }
+
+
 
 
     /**
