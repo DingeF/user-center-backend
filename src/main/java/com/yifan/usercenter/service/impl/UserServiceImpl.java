@@ -243,20 +243,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 使用内存查询用户标签，拼接and查询条件
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         List<User> userList = userMapper.selectList(queryWrapper);
-
+        Gson gson = new Gson();
         // 过滤用户标签，返回包含所有查询标签的用户
        return userList.stream().filter(user -> {
-            Gson gson = new Gson();
+
             String tagString = user.getTags();
 
-            // 空tagString字符串处理
-            if (StringUtils.isBlank(tagString)){
-                return false;
-            }
+            // 空tagString字符串处理,
+           // 用下方的Optional.ofNullable(tagString).orElse(Collections.emptyList())处理
+//            if (StringUtils.isBlank(tagString)){
+//                return false;
+//            }
 
             // 标签列表,使用Gson将Json字符串转Json列表(反序列化为List<String>的Java对象)
             List<String> tagNames = gson.fromJson(tagString, new TypeToken<List<String>>() {
             }.getType());
+            tagNames = Optional.ofNullable(tagNames).orElse(Collections.emptyList());
             // 检查用户标签是否包含所有查询标签，不区分大小写
            for (String tagName : tagNames) {
                boolean matchFound = false;
