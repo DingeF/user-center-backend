@@ -201,6 +201,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setUserRole(user.getUserRole());
         safetyUser.setPlantCode(user.getPlantCode());
         safetyUser.setTags(user.getTags());
+        safetyUser.setProfile(user.getProfile());
         safetyUser.setCreateTime(user.getCreateTime());
 
         return safetyUser;

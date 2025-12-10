@@ -74,6 +74,11 @@ public class User {
      */
     private String tags;
 
+     /**
+     * 个人简介
+     */
+    private String profile;
+
     /**
      * 创建时间
      */

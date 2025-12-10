@@ -17,15 +17,17 @@
             <result property="userRole" column="userRole" />
             <result property="plantCode" column="plantCode" />
             <result property="tags" column="tags" />
+        <result property="profile" column="profile" />
             <result property="createTime" column="createTime" />
             <result property="updateTime" column="updateTime" />
             <result property="isDelete" column="isDelete" />
+
     </resultMap>
 
     <sql id="Base_Column_List">
             <!-- SQL fields for User table -->
         id,username,userAccount,avatarUrl,gender,userPassword,
-        phone,email,userStatus,userRole,plantCode,tags,createTime,updateTime,
+        phone,email,userStatus,userRole,plantCode,tags,profile,createTime,updateTime,
         isDelete
     </sql>
 </mapper>
