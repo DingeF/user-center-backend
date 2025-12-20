@@ -3,6 +3,8 @@ spring:
   application:
     name: user-center
 
+
+
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher  # 解决Spring Boot版本 >= 2.6.x 版本与Swagger2 2.9.2 不兼容问题
@@ -12,9 +14,17 @@ spring:
     url: jdbc:mysql://localhost:3306/yifan  #  /user_center?useSSL=false&serverTimezone=UTC&characterEncoding=utf-8
     username: root
     password: Dyf981024.
-  # 配置session超时时间为1天
+
+  # redis配置
+  redis:
+    host: localhost
+    port: 6379  # redis默认端口
+    database: 0  # redis默认数据库索引为0
+
+  # 配置session失效时间(单位:秒)
   session:
     timeout: 86400
+    store-type: redis
 server:
   port: 8080
   servlet:

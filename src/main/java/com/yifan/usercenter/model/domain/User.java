@@ -2,6 +2,7 @@ package com.yifan.usercenter.model.domain;
 
 import com.baomidou.mybatisplus.annotation.*;
 
+import java.io.Serializable;
 import java.util.Date;
 
 import lombok.Data;
@@ -12,7 +13,13 @@ import lombok.Data;
  */
 @TableName(value = "user")
 @Data
-public class User {
+public class User implements Serializable {
+
+    /**
+     * 序列化版本号
+     */
+    private static final long serialVersionUID = 1L;
+
     /**
      * 主键
      */

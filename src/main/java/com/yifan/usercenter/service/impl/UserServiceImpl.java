@@ -1,7 +1,6 @@
 package com.yifan.usercenter.service.impl;
 
 import com.google.gson.Gson;
-import com.google.gson.TypeAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.yifan.usercenter.common.*;
 
@@ -237,43 +236,44 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     @Override
     public List<User> queryUsersByTagsAccordMemory(List<String> tagNameList) {
-        if (Collections.emptyList().equals(tagNameList)) {
+        if (tagNameList == null || tagNameList.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签列表为空");
         }
 
         // 使用内存查询用户标签，拼接and查询条件
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        // 使用selectList去内存查询所有的用户
         List<User> userList = userMapper.selectList(queryWrapper);
         Gson gson = new Gson();
-        // 过滤用户标签，返回包含所有查询标签的用户
-       return userList.stream().filter(user -> {
 
+        // 规范化查询标签（去空白、统一大小写）
+        List<String> normalizedQueryTags = tagNameList.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(String::toLowerCase)
+                .collect(Collectors.toList());
+        if (normalizedQueryTags.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签列表为空");
+        }
+
+        // 过滤用户标签：用户标签集合需要包含所有查询标签
+        return userList.stream().filter(user -> {
             String tagString = user.getTags();
+            if (StringUtils.isBlank(tagString)) {
+                return false;
+            }
 
-            // 空tagString字符串处理,
-           // 用下方的Optional.ofNullable(tagString).orElse(Collections.emptyList())处理
-//            if (StringUtils.isBlank(tagString)){
-//                return false;
-//            }
-
-            // 标签列表,使用Gson将Json字符串转Json列表(反序列化为List<String>的Java对象)
-            List<String> tagNames = gson.fromJson(tagString, new TypeToken<List<String>>() {
-            }.getType());
-            tagNames = Optional.ofNullable(tagNames).orElse(Collections.emptyList());
-            // 检查用户标签是否包含所有查询标签，不区分大小写
-           for (String tagName : tagNames) {
-               boolean matchFound = false;
-               for (String queryTag : tagNameList) {
-                   if (tagName.equalsIgnoreCase(queryTag)) {
-                       matchFound = true;
-                       break;
-                   }
-               }
-               if (!matchFound) {
-                   return false;
-               }
-           }
-            return true;
+            List<String> tagNames = gson.fromJson(tagString, new TypeToken<List<String>>() {}.getType());
+            List<String> safeTagNames = Optional.ofNullable(tagNames).orElse(Collections.emptyList());
+            Set<String> normalizedUserTags = safeTagNames.stream()
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(String::toLowerCase)
+                    .collect(Collectors.toSet());
+            // 判断用户标签是否包含所有查询标签
+            return normalizedQueryTags.stream().allMatch(normalizedUserTags::contains);
         }).map(this::getSafetyUser).collect(Collectors.toList());
     }
 
@@ -284,16 +284,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     @Override
     public List<User> queryUsersByTagsAccordSql(List<String> tagNameList){
-        if (Collections.emptyList().equals(tagNameList)) {
+        if (tagNameList == null || tagNameList.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签列表为空");
         }
         // 定义查询对象
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        // 使用SQL查询用户标签，拼接and查询条件
-        // like %Java% and like %Python% and like %男% and like %研一%
-        // 使用循环拼接like查询条件
-        for(String tagName : tagNameList){
-            queryWrapper = queryWrapper.like("tags", tagName); // 列名:值
+        // 添加非空检查，排除tags为null或空的用户
+        queryWrapper.isNotNull("tags").ne("tags", "");
+
+        // 规范化查询标签（去空白、统一大小写），并以 AND 方式叠加 like 条件
+        List<String> normalizedQueryTags = tagNameList.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(String::toLowerCase)
+                .collect(Collectors.toList());
+        if (normalizedQueryTags.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签列表为空");
+        }
+
+        for (String tag : normalizedQueryTags) {
+            queryWrapper.like("tags", tag);
         }
         // 执行查询
         List<User> userList = userMapper.selectList(queryWrapper);

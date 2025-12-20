@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -136,12 +135,21 @@ public class UserController {
         return ResultUtil.success(safe, "查询成功");
     }
 
-    @PostMapping("/queryByTags")
-    public BaseResponse<List<User>> queryUserByTags(@RequestBody List<String> tagNameList) {
-        if (Collections.emptyList().equals(tagNameList)) {
+    /**
+     * 根据标签列表查询用户(所有标签都满足)----内存实现
+     * @param tagNameList 标签列表
+     * @return 返回 safetyUser 列表
+     */
+    @GetMapping("/search/tags")
+    @CrossOrigin(origins = {"http://localhost:3000"}, allowCredentials = "true", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.OPTIONS})
+    public BaseResponse<List<User>> queryUserByTags(
+            @RequestParam(value = "tagNameList", required = false) List<String> tagNameList,
+            @RequestParam(value = "tagNameList[]", required = false) List<String> tagNameListArray) {
+        List<String> tags = (tagNameList != null && !tagNameList.isEmpty()) ? tagNameList : tagNameListArray;
+        if (tags == null || tags.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签列表为空");
         }
-        return ResultUtil.success(userService.queryUsersByTagsAccordMemory(tagNameList), "查询成功");
+        return ResultUtil.success(userService.queryUsersByTagsAccordMemory(tags), "查询成功");
     }
 
 
